@@ -1,0 +1,68 @@
+
+clc;
+clear;
+close all;
+
+%% Part A: Adding Different Types of Noise
+
+% Read the original grayscale image
+I = imread('cameraman.tif');
+Id = im2double(I);
+
+% Add different types of noise
+Ng  = imnoise(I, 'gaussian', 0, 0.01);
+Np  = imnoise(I, 'poisson');
+Nsp = imnoise(I, 'salt & pepper', 0.05);
+Nsk = imnoise(I, 'speckle', 0.04);
+
+% Add uniform noise
+Nu = im2uint8(Id + 0.4 * (rand(size(Id)) - 0.5));
+
+% Add exponential noise
+Ne = im2uint8(Id - 0.05 * log(1 - rand(size(Id))));
+
+% Store noisy images and their labels
+noisy = {Ng, Np, Nsp, Nsk, Nu, Ne};
+
+labels = {'Gaussian', 'Poisson', 'Salt & Pepper', ...
+          'Speckle', 'Uniform', 'Exponential'};
+
+% Display noisy images and calculate PSNR
+figure('Name', 'Different Types of Image Noise');
+
+for k = 1:6
+    subplot(2, 3, k);
+    imshow(noisy{k});
+    title(labels{k});
+
+    % Calculate Peak Signal-to-Noise Ratio
+    fprintf('%s PSNR = %.2f dB\n', ...
+        labels{k}, psnr(noisy{k}, I));
+end
+
+%% Part B: Noise Histograms
+
+% Create a constant-intensity image
+flat = uint8(128 * ones(200));
+
+% Generate noisy images for histogram analysis
+P = {imnoise(flat, 'gaussian', 0, 0.005), ...
+     imnoise(flat, 'salt & pepper', 0.05), ...
+     im2uint8(0.5 + 0.4 * (rand(200) - 0.5)), ...
+     im2uint8(0.3 - 0.08 * log(1 - rand(200)))};
+
+% Define histogram labels
+pn = {'Gaussian', 'Salt & Pepper', ...
+      'Uniform', 'Exponential'};
+
+% Display histograms of different noise types
+figure('Name', 'Noise Histograms');
+
+for k = 1:4
+    subplot(2, 2, k);
+    imhist(P{k});
+    title(pn{k});
+end
+
+%% Completion Message
+disp('Image noise generation and histogram analysis completed.');
