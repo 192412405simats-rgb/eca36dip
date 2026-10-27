@@ -1,0 +1,66 @@
+
+clc;
+clear;
+close all;
+
+% Digital Image Fundamentals
+
+% Read the built-in colour image
+RGB = imread('peppers.png');
+info = imfinfo('peppers.png');
+
+% Display image information
+fprintf('File format : %s\n', info.Format);
+fprintf('Bit depth : %d bits/pixel\n', info.BitDepth);
+fprintf('Size of RGB image : %d x %d x %d\n', size(RGB));
+
+% Convert colour image to grayscale
+G = rgb2gray(RGB);
+
+fprintf('Size of gray image : %d x %d, class: %s\n', ...
+    size(G,1), size(G,2), class(G));
+
+% Grayscale conversion using the luminance equation
+Gm = uint8(0.2989 * double(RGB(:,:,1)) + ...
+          0.5870 * double(RGB(:,:,2)) + ...
+          0.1140 * double(RGB(:,:,3)));
+
+% Verify grayscale conversion
+difference = max(abs(double(G(:)) - double(Gm(:))));
+
+fprintf('Max. difference rgb2gray vs. equation = %d\n', ...
+    difference);
+
+% Convert grayscale image to binary
+level = graythresh(G);
+BW1 = imbinarize(G, 0.5);
+BW2 = imbinarize(G, level);
+
+fprintf('Otsu threshold = %.4f (%d on 0-255 scale)\n', ...
+    level, round(255 * level));
+
+% Display the results
+figure('Name', 'Digital Image Fundamentals');
+
+subplot(2,2,1);
+imshow(RGB);
+title('Colour Image');
+
+subplot(2,2,2);
+imshow(G);
+title('Gray-Scale Image');
+
+subplot(2,2,3);
+imshow(BW1);
+title('Binary Image (T = 0.5)');
+
+subplot(2,2,4);
+imshow(BW2);
+title(sprintf('Binary Image (Otsu, T = %.2f)', level));
+
+% Save the output images
+imwrite(G, 'peppers_gray.png');
+imwrite(BW2, 'peppers_binary.png');
+
+% Display completion message
+disp('Image conversion completed successfully.');
