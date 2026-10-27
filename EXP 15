@@ -1,0 +1,111 @@
+
+clc;
+clear;
+close all;
+
+%% Part A: Entropy and Huffman Coding
+
+% Read the grayscale image
+I = imread('cameraman.tif');
+
+% Calculate the probability distribution
+p = imhist(I) / numel(I);
+
+sym = find(p > 0) - 1;
+prob = p(p > 0);
+
+% Calculate image entropy
+H = -sum(prob .* log2(prob));
+
+% Generate Huffman dictionary
+dict = huffmandict(sym, prob);
+
+% Encode and decode the image
+code = huffmanenco(double(I(:)), dict);
+dec = huffmandeco(code, dict);
+
+% Calculate average code length
+Lavg = numel(code) / numel(I);
+
+% Display Huffman coding results
+fprintf('Entropy = %.4f bits/pixel\n', H);
+fprintf('Average code length = %.4f bits/pixel\n', Lavg);
+fprintf('Coding efficiency = %.2f%%\n', 100 * H / Lavg);
+fprintf('Compression ratio = %.3f\n', 8 / Lavg);
+fprintf('Lossless decoding = %d\n', ...
+    isequal(dec(:), double(I(:))));
+
+% Display five most probable gray levels
+[~, ord] = sort(prob, 'descend');
+
+disp('Five most probable gray levels:');
+
+for k = 1:min(5, numel(ord))
+
+    fprintf('Level %3d, Probability = %.4f, Code = %s\n', ...
+        dict{ord(k), 1}, prob(ord(k)), ...
+        num2str(dict{ord(k), 2}, '%d'));
+
+end
+
+%% Part B: Run-Length Coding
+
+% Read the binary text image
+BW = imread('text.png');
+
+% Convert the image into a one-dimensional sequence
+x = reshape(BW', 1, []);
+
+% Identify the starting positions of runs
+s = [true, diff(x) ~= 0];
+
+% Extract run values
+val = x(s);
+
+% Calculate run lengths
+runs = diff([find(s), numel(x) + 1]);
+
+% Reconstruct the original sequence
+rec = repelem(val, runs);
+
+% Estimate bits required for each run length
+bitsPerRun = ceil(log2(max(runs) + 1));
+
+% Calculate approximate compression ratio
+CRrle = numel(x) / (numel(runs) * bitsPerRun + 1);
+
+% Display Run-Length Coding results
+fprintf('\nRun-Length Coding of text.png\n');
+fprintf('Number of runs = %d\n', numel(runs));
+fprintf('Bits per run length = %d\n', bitsPerRun);
+fprintf('Compression ratio = %.2f\n', CRrle);
+fprintf('Lossless decoding = %d\n', isequal(rec, x));
+
+% Display the first 20 run lengths
+disp('First 20 run lengths:');
+disp(runs(1:min(20, numel(runs))));
+
+%% Part C: Arithmetic Coding
+
+% Define the input symbol sequence
+seq = [1 2 1 1 3 1 2 1 1 1 3 2 1 1];
+
+% Calculate symbol frequencies
+counts = accumarray(seq(:), 1)';
+
+% Encode the sequence
+acode = arithenco(seq, counts);
+
+% Decode the encoded sequence
+dseq = arithdeco(acode, counts, numel(seq));
+
+% Display Arithmetic Coding results
+fprintf('\nArithmetic Coding\n');
+
+fprintf('Symbols = %d, Encoded bits = %d, Bits/symbol = %.2f\n', ...
+    numel(seq), numel(acode), numel(acode) / numel(seq));
+
+fprintf('Decoded correctly = %d\n', isequal(seq, dseq));
+
+%% Completion Message
+disp('Image compression and coding analysis completed.');
