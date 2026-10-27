@@ -1,0 +1,134 @@
+
+clc;
+clear;
+close all;
+
+%% Part A: Iterative Thresholding and Otsu Thresholding
+
+% Read the coins image
+I = imread('coins.png');
+
+% Initialize threshold and iteration counter
+T = mean(double(I(:)));
+iter = 0;
+
+% Perform iterative thresholding
+while true
+
+    iter = iter + 1;
+
+    % Calculate means of the two intensity groups
+    Tnext = 0.5 * (mean(double(I(I > T))) + ...
+                   mean(double(I(I <= T))));
+
+    % Check convergence
+    if abs(T - Tnext) < 0.5
+        T = Tnext;
+        break;
+    end
+
+    T = Tnext;
+
+end
+
+% Apply iterative thresholding
+BWi = I > T;
+
+% Calculate Otsu threshold
+level = graythresh(I);
+BWo = imbinarize(I, level);
+
+% Display threshold values
+fprintf('Iterative Threshold = %.2f (%d iterations)\n', T, iter);
+fprintf('Otsu Threshold = %.2f\n', 255 * level);
+
+%% Part B: Adaptive Thresholding
+
+% Read the rice image
+R = imread('rice.png');
+
+% Apply global thresholding
+BWg = imbinarize(R);
+
+% Apply adaptive thresholding
+BWa = imbinarize(R, 'adaptive', 'Sensitivity', 0.4);
+
+% Display thresholding results
+figure('Name', 'Image Thresholding');
+
+subplot(2, 3, 1);
+imshow(I);
+title('Original Coins');
+
+subplot(2, 3, 2);
+imshow(BWi);
+title('Iterative Threshold');
+
+subplot(2, 3, 3);
+imshow(BWo);
+title('Otsu Threshold');
+
+subplot(2, 3, 4);
+imshow(R);
+title('Original Rice');
+
+subplot(2, 3, 5);
+imshow(BWg);
+title('Global Threshold');
+
+subplot(2, 3, 6);
+imshow(BWa);
+title('Adaptive Threshold');
+
+%% Part C: Seeded Region Growing
+
+% Display the image and select a seed point
+figure('Name', 'Seed Selection');
+imshow(I);
+title('Select a Seed Point');
+
+[c, r] = ginput(1);
+
+% Perform region growing from the selected seed
+BWr = grayconnected(I, round(r), round(c), 40);
+
+% Display the segmented region
+figure('Name', 'Region Growing');
+imshow(labeloverlay(I, BWr));
+title('Region Growing');
+
+%% Part D: Marker-Controlled Watershed Segmentation
+
+% Fill holes in the binary image
+bw = imfill(BWo, 'holes');
+
+% Calculate the negative distance transform
+Dt = -bwdist(~bw);
+
+% Impose regional minima
+Dt = imimposemin(Dt, imextendedmin(Dt, 2));
+
+% Apply watershed segmentation
+Lw = watershed(Dt);
+
+% Remove watershed boundaries outside the binary mask
+Lw(~bw) = 0;
+
+% Count connected coin objects
+cc = bwconncomp(bw);
+
+fprintf('Number of coins detected = %d\n', cc.NumObjects);
+
+% Display watershed segmentation results
+figure('Name', 'Watershed Segmentation');
+
+subplot(1, 2, 1);
+imshow(bw);
+title('Filled Binary Mask');
+
+subplot(1, 2, 2);
+imshow(label2rgb(Lw, 'jet', 'k', 'shuffle'));
+title('Watershed Segmentation');
+
+%% Completion Message
+disp('Thresholding and image segmentation completed.');
