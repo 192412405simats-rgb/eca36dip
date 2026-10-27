@@ -1,0 +1,125 @@
+
+clc;
+clear;
+close all;
+
+%% Read the Input Image
+
+X = double(imread('cameraman.tif'));
+
+%% Part A: Single-Level 2-D DWT
+
+% Perform one-level Haar wavelet decomposition
+[cA1, cH1, cV1, cD1] = dwt2(X, 'haar');
+
+% Display the four wavelet subbands
+figure('Name', 'Level-1 Subbands');
+
+subplot(2, 2, 1);
+imshow(cA1, []);
+title('Approximation');
+
+subplot(2, 2, 2);
+imshow(abs(cH1), []);
+title('Horizontal Detail');
+
+subplot(2, 2, 3);
+imshow(abs(cV1), []);
+title('Vertical Detail');
+
+subplot(2, 2, 4);
+imshow(abs(cD1), []);
+title('Diagonal Detail');
+
+% Reconstruct the image using inverse DWT
+X1 = idwt2(cA1, cH1, cV1, cD1, 'haar');
+
+% Calculate maximum reconstruction error
+fprintf('Level-1 reconstruction error = %.2e\n', ...
+    max(abs(X1(:) - X(:))));
+
+%% Part B: Two-Level Wavelet Decomposition
+
+% Perform two-level Haar wavelet decomposition
+[C, S] = wavedec2(X, 2, 'haar');
+
+% Extract level-2 approximation coefficients
+A2 = appcoef2(C, S, 'haar', 2);
+
+% Extract level-2 detail coefficients
+[H2, V2, D2] = detcoef2('all', C, S, 2);
+
+% Extract level-1 detail coefficients
+[H1, V1, D1] = detcoef2('all', C, S, 1);
+
+% Normalize coefficient images for display
+g = @(m) mat2gray(abs(m));
+
+% Construct level-2 subband layout
+L2 = [g(A2), g(H2);
+      g(V2), g(D2)];
+
+% Construct the two-level wavelet pyramid
+pyr = [L2, g(H1);
+       g(V1), g(D1)];
+
+% Display the wavelet decomposition pyramid
+figure('Name', 'Two-Level Pyramid');
+
+imshow(pyr);
+title('Two-Level Haar Subband Pyramid');
+
+% Reconstruct the original image
+Xr = waverec2(C, S, 'haar');
+
+% Calculate maximum reconstruction error
+fprintf('Level-2 reconstruction error = %.2e\n', ...
+    max(abs(Xr(:) - X(:))));
+
+%% Part C: Wavelet Compression
+
+% Define the percentages of coefficients to retain
+keep = [0.20 0.10 0.05 0.02];
+
+% Sort coefficient magnitudes in descending order
+Cs = sort(abs(C), 'descend');
+
+% Create a figure for compressed images
+figure('Name', 'Wavelet Compression');
+
+%% Apply Different Compression Levels
+
+for k = 1:numel(keep)
+
+    % Determine the threshold for the selected percentage
+    thr = Cs(max(1, round(keep(k) * numel(C))));
+
+    % Retain coefficients above or equal to the threshold
+    Ct = C .* (abs(C) >= thr);
+
+    % Reconstruct the compressed image
+    Xc = waverec2(Ct, S, 'haar');
+
+    % Clip pixel values and convert to uint8
+    Xc = uint8(min(max(Xc, 0), 255));
+
+    % Calculate PSNR
+    p = psnr(Xc, uint8(X));
+
+    % Display compression results
+    fprintf('Coefficients kept = %3.0f%%, PSNR = %.2f dB\n', ...
+        100 * keep(k), p);
+
+    % Display reconstructed image
+    subplot(2, 2, k);
+
+    imshow(Xc);
+
+    title(sprintf('%.0f%% Coefficients, %.1f dB', ...
+        100 * keep(k), p));
+
+end
+
+%% Completion Message
+
+disp('Wavelet decomposition and compression completed.');
