@@ -1,0 +1,122 @@
+
+clc;
+clear;
+close all;
+
+%% Read the Binary Image
+
+BW = imread('blobs.png');
+
+%% Part A: Boundary Tracing
+
+% Trace boundaries of connected objects
+[B, L] = bwboundaries(BW, 'noholes');
+
+% Display labelled image
+figure('Name', 'Boundaries');
+
+imshow(label2rgb(L, @jet, [.5 .5 .5]));
+hold on;
+
+% Plot the boundary of each object
+for k = 1:numel(B)
+
+    plot(B{k}(:, 2), B{k}(:, 1), ...
+        'w', 'LineWidth', 1.5);
+
+end
+
+% Display the total number of boundaries
+title(sprintf('%d Boundaries Traced', numel(B)));
+
+%% Part B: Freeman 8-Direction Chain Code
+
+% Calculate the length of each boundary
+len = cellfun(@(b) size(b, 1), B);
+
+% Select the boundary with the greatest number of points
+[~, idx] = max(len);
+b = B{idx};
+
+% Calculate differences between consecutive boundary points
+d = diff(b);
+
+% Define the eight Freeman directions
+dirs = [ 0  1;
+        -1  1;
+        -1  0;
+        -1 -1;
+         0 -1;
+         1 -1;
+         1  0;
+         1  1];
+
+% Initialize the chain code
+cc = zeros(1, size(d, 1));
+
+% Convert boundary movements into direction codes
+for k = 1:size(d, 1)
+
+    [~, cc(k)] = ismember(d(k, :), dirs, 'rows');
+
+end
+
+% Convert direction codes to the range 0 to 7
+cc = cc - 1;
+
+% Calculate the first difference of the chain code
+fd = mod(diff([cc cc(1)]), 8);
+
+% Display chain code results
+fprintf('Chain code length = %d\n', numel(cc));
+
+fprintf('Chain code (first 30) = %s\n', ...
+    num2str(cc(1:min(30, end)), '%d'));
+
+fprintf('First difference (first 30) = %s\n', ...
+    num2str(fd(1:min(30, end)), '%d'));
+
+%% Display the Largest Object Boundary
+
+figure('Name', 'Largest Object');
+
+imshow(BW);
+hold on;
+
+% Plot the selected boundary
+plot(b(:, 2), b(:, 1), 'r', 'LineWidth', 2);
+
+% Mark the starting point
+plot(b(1, 2), b(1, 1), ...
+    'go', 'MarkerSize', 10, 'LineWidth', 2);
+
+title('Boundary for Chain Code');
+
+%% Part C: Regional and Topological Descriptors
+
+% Calculate region properties for each object
+st = regionprops('table', BW, ...
+    'Area', 'Perimeter', 'Eccentricity', ...
+    'Solidity', 'EulerNumber');
+
+% Calculate circularity
+st.Circularity = ...
+    4 * pi * st.Area ./ st.Perimeter.^2;
+
+% Estimate the number of holes per object
+st.Holes = 1 - st.EulerNumber;
+
+% Display the region descriptor table
+disp(st);
+
+%% Calculate the Euler Number of the Whole Image
+
+% Use 8-connectivity
+euler = bweuler(BW, 8);
+
+fprintf('Euler number of the whole image (8-connectivity) = %d\n', ...
+    euler);
+
+%% Completion Message
+
+disp('Boundary tracing and shape analysis completed.');
