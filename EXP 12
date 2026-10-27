@@ -1,0 +1,108 @@
+
+clc;
+clear;
+close all;
+
+%% Part A: Edge Detection Using Different Methods
+
+% Read the input image
+I = imread('circuit.tif');
+
+% Define edge detection methods
+methods = {'roberts', 'prewitt', 'sobel', 'log', 'canny'};
+
+% Display original image and detected edges
+figure('Name', 'Edge Detection Methods');
+
+subplot(2, 3, 1);
+imshow(I);
+title('Original Image');
+
+% Apply each edge detection method
+for k = 1:5
+
+    E = edge(I, methods{k});
+
+    subplot(2, 3, k + 1);
+    imshow(E);
+    title(upper(methods{k}));
+
+    % Count detected edge pixels
+    fprintf('%s: %d edge pixels\n', ...
+        methods{k}, nnz(E));
+
+end
+
+%% Part B: Gradient Magnitude and Direction
+
+% Calculate image gradients using Sobel operator
+[Gmag, Gdir] = imgradient(I, 'sobel');
+
+% Display gradient magnitude and direction
+figure('Name', 'Gradient Analysis');
+
+subplot(1, 2, 1);
+imshow(Gmag, []);
+title('Gradient Magnitude');
+
+subplot(1, 2, 2);
+imshow(Gdir, []);
+title('Gradient Direction');
+
+%% Part C: Edge Linking Using Hough Transform
+
+% Detect edges using Canny method
+BW = edge(I, 'canny');
+
+% Compute the Hough Transform
+[H, theta, rho] = hough(BW);
+
+% Detect peaks in the Hough Transform
+P = houghpeaks(H, 10, ...
+    'Threshold', ceil(0.3 * max(H(:))));
+
+% Detect line segments using Hough peaks
+lines = houghlines(BW, theta, rho, P, ...
+    'FillGap', 5, 'MinLength', 7);
+
+% Display Hough Transform and detected line segments
+figure('Name', 'Hough Transform and Line Detection');
+
+% Hough Transform display
+subplot(1, 2, 1);
+
+imshow(mat2gray(H), 'XData', theta, 'YData', rho, ...
+    'InitialMagnification', 'fit');
+
+axis on;
+axis normal;
+hold on;
+
+% Mark detected peaks
+plot(theta(P(:, 2)), rho(P(:, 1)), 'rs');
+
+xlabel('\theta (degrees)');
+ylabel('\rho');
+title('Hough Transform');
+
+% Display detected line segments
+subplot(1, 2, 2);
+imshow(I);
+hold on;
+title('Detected Line Segments');
+
+% Draw each detected line
+for k = 1:length(lines)
+
+    xy = [lines(k).point1; lines(k).point2];
+
+    plot(xy(:, 1), xy(:, 2), ...
+        'g', 'LineWidth', 2);
+
+end
+
+% Display the total number of detected line segments
+fprintf('Number of line segments = %d\n', length(lines));
+
+%% Completion Message
+disp('Edge detection and Hough transform completed.');
