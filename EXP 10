@@ -1,0 +1,94 @@
+
+clc;
+clear;
+close all;
+
+%% Part A: Add Different Types of Noise
+
+% Read the original grayscale image
+I = imread('cameraman.tif');
+
+% Add Gaussian noise
+Ng = imnoise(I, 'gaussian', 0, 0.01);
+
+% Add Salt-and-Pepper noise
+Nsp = imnoise(I, 'salt & pepper', 0.10);
+
+% Add Pepper noise
+Npp = I;
+Npp(rand(size(I)) < 0.05) = 0;
+
+% Store noisy images and their names
+noisy = {Ng, Nsp, Npp};
+
+nname = {'Gaussian', 'Salt & Pepper', 'Pepper'};
+
+% Define filtering method names
+fname = {'Arithmetic Mean', 'Geometric Mean', 'Median', ...
+         'Max', 'Min', 'Adaptive Wiener'};
+
+% Initialize PSNR results matrix
+psnrTable = zeros(3, 6);
+
+%% Part B: Apply Image Filtering
+
+for n = 1:3
+
+    % Select the noisy image
+    X = noisy{n};
+
+    % 1. Arithmetic Mean Filter
+    out{1} = imfilter(X, fspecial('average', 3), 'replicate');
+
+    % 2. Geometric Mean Filter
+    out{2} = uint8(exp(imfilter(log(double(X) + 1), ...
+                  ones(3)/9, 'replicate')) - 1);
+
+    % 3. Median Filter
+    out{3} = medfilt2(X, [3 3], 'symmetric');
+
+    % 4. Maximum Filter
+    out{4} = ordfilt2(X, 9, ones(3), 'symmetric');
+
+    % 5. Minimum Filter
+    out{5} = ordfilt2(X, 1, ones(3), 'symmetric');
+
+    % 6. Adaptive Wiener Filter
+    out{6} = wiener2(X, [5 5]);
+
+    % Display original, noisy and filtered images
+    figure('Name', ['Filtering - ' nname{n}]);
+
+    subplot(2, 4, 1);
+    imshow(I);
+    title('Original Image');
+
+    subplot(2, 4, 2);
+    imshow(X);
+    title(nname{n});
+
+    % Calculate PSNR and display filtered images
+    for k = 1:6
+
+        psnrTable(n, k) = psnr(out{k}, I);
+
+        subplot(2, 4, k + 2);
+        imshow(out{k});
+        title(fname{k});
+
+    end
+end
+
+%% Part C: Display PSNR Results
+
+% Convert PSNR results into a table
+T = array2table(psnrTable, ...
+    'VariableNames', matlab.lang.makeValidName(fname), ...
+    'RowNames', nname);
+
+% Display the PSNR table
+disp('PSNR (dB) after filtering:');
+disp(T);
+
+%% Completion Message
+disp('Image denoising and filtering completed.');
